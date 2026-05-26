@@ -1,1 +1,282 @@
+name: FFESSM QCM — CI/CD Flutter
 
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  FLUTTER_VERSION: '3.22.0'
+
+jobs:
+  # ─────────────────────────────────────────
+  # JOB 1 : Analyse statique du code
+  # ─────────────────────────────────────────
+  analyze:
+    name: 🔍 Analyse statique
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Installation Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Récupération des dépendances
+        run: flutter pub get
+
+      - name: Vérification du formatage
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyse Dart (linting)
+        run: flutter analyze --no-fatal-infos
+
+  # ─────────────────────────────────────────
+  # JOB 2 : Tests unitaires
+  # ─────────────────────────────────────────
+  test:
+    name: 🧪 Tests unitaires
+    runs-on: ubuntu-latest
+    needs: analyze
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Installation Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Récupération des dépendances
+        run: flutter pub get
+
+      - name: Exécution des tests unitaires
+        run: flutter test --reporter=expanded
+
+      - name: Rapport de couverture de tests
+        run: flutter test --coverage
+
+      - name: Upload couverture vers Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage/lcov.info
+          flags: unittests
+          name: ffessm-qcm-coverage
+        continue-on-error: true
+
+  # ─────────────────────────────────────────
+  # JOB 3 : Build Android APK (debug)
+  # ─────────────────────────────────────────
+  build-android:
+    name: 🤖 Build Android APK
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Installation de Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Installation Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Récupération des dépendances
+        run: flutter pub get
+
+      - name: Build APK debug
+        run: flutter build apk --debug --target-platform android-arm64
+
+      - name: Upload APK debug
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffessm-qcm-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
+
+  # ─────────────────────────────────────────
+  # JOB 4 : Build Web
+  # ─────────────────────────────────────────
+  build-web:
+    name: 🌐 Build Web
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Installation Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Récupération des dépendances
+        run: flutter pub get
+
+      - name: Build Web (CanvasKit)
+        run: flutter build web --release --web-renderer canvaskit
+
+      - name: Upload build web
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffessm-qcm-web
+          path: build/web/
+          retention-days: 7
+
+  # ─────────────────────────────────────────
+  # JOB 5 : Build iOS (macOS only)
+  # ─────────────────────────────────────────
+  build-ios:
+    name: 🍎 Build iOS
+    runs-on: macos-latest
+    needs: test
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Installation Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Récupération des dépendances
+        run: flutter pub get
+
+      - name: Build iOS (no codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Upload build iOS
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffessm-qcm-ios
+          path: build/ios/iphoneos/
+          retention-days: 7
+
+  # ─────────────────────────────────────────
+  # JOB 6 : Déploiement GitHub Pages (web)
+  # ─────────────────────────────────────────
+  deploy-web:
+    name: 🚀 Déploiement GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build-web
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Installation Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Récupération des dépendances
+        run: flutter pub get
+
+      - name: Build Web pour GitHub Pages
+        run: |
+          flutter build web --release \
+            --web-renderer canvaskit \
+            --base-href "/${{ github.event.repository.name }}/"
+
+      - name: Configuration GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artefact Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+      - name: Déploiement sur GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ─────────────────────────────────────────
+  # JOB 7 : Release (tag uniquement)
+  # ─────────────────────────────────────────
+  release:
+    name: 📦 Création de release
+    runs-on: ubuntu-latest
+    needs: [build-android, build-web]
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Installation de Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Installation Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Récupération des dépendances
+        run: flutter pub get
+
+      - name: Build APK release
+        run: flutter build apk --release --target-platform android-arm64
+
+      - name: Build Web release
+        run: flutter build web --release --web-renderer canvaskit
+
+      - name: Créer archive web
+        run: |
+          cd build/web
+          zip -r ../../ffessm-qcm-web.zip .
+
+      - name: Création de la GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            ffessm-qcm-web.zip
+          body: |
+            ## 🤿 FFESSM QCM — ${{ github.ref_name }}
+
+            Application de révision pour les certifications FFESSM de plongée.
+
+            ### 📱 Téléchargements
+            - **Android APK** : `app-release.apk`
+            - **Web** : `ffessm-qcm-web.zip` (à décompresser sur un serveur)
+
+            ### 📚 Modules disponibles
+            - 🐟 Niveau 1 — PE20
+            - 🐠 Niveau 2 — PA20 / PE40
+            - 🦈 Niveau 3 — PA40 / PE60 / PA60
+            - ⚓ Niveau 4 — Guide de Palanquée GP-N4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
