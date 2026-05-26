@@ -8,11 +8,9 @@ on:
 
 env:
   FLUTTER_VERSION: '3.22.0'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
-  # ─────────────────────────────────────────
-  # JOB 1 : Analyse statique du code
-  # ─────────────────────────────────────────
   analyze:
     name: 🔍 Analyse statique
     runs-on: ubuntu-latest
@@ -36,9 +34,6 @@ jobs:
       - name: Analyse Dart (linting)
         run: flutter analyze --no-fatal-infos
 
-  # ─────────────────────────────────────────
-  # JOB 2 : Tests unitaires
-  # ─────────────────────────────────────────
   test:
     name: 🧪 Tests unitaires
     runs-on: ubuntu-latest
@@ -71,9 +66,6 @@ jobs:
           name: ffessm-qcm-coverage
         continue-on-error: true
 
-  # ─────────────────────────────────────────
-  # JOB 3 : Build Android APK (debug)
-  # ─────────────────────────────────────────
   build-android:
     name: 🤖 Build Android APK
     runs-on: ubuntu-latest
@@ -108,9 +100,6 @@ jobs:
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 7
 
-  # ─────────────────────────────────────────
-  # JOB 4 : Build Web
-  # ─────────────────────────────────────────
   build-web:
     name: 🌐 Build Web
     runs-on: ubuntu-latest
@@ -139,9 +128,6 @@ jobs:
           path: build/web/
           retention-days: 7
 
-  # ─────────────────────────────────────────
-  # JOB 5 : Build iOS (macOS only)
-  # ─────────────────────────────────────────
   build-ios:
     name: 🍎 Build iOS
     runs-on: macos-latest
@@ -170,9 +156,6 @@ jobs:
           path: build/ios/iphoneos/
           retention-days: 7
 
-  # ─────────────────────────────────────────
-  # JOB 6 : Déploiement GitHub Pages (web)
-  # ─────────────────────────────────────────
   deploy-web:
     name: 🚀 Déploiement GitHub Pages
     runs-on: ubuntu-latest
@@ -217,9 +200,6 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-  # ─────────────────────────────────────────
-  # JOB 7 : Release (tag uniquement)
-  # ─────────────────────────────────────────
   release:
     name: 📦 Création de release
     runs-on: ubuntu-latest
