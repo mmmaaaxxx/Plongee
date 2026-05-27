@@ -2526,7 +2526,8 @@ const List<Question> _niveau3Questions = [
 // ============================================================
 // NIVEAU 4 — Guide de Palanquée GP-N4 (100 questions)
 // ============================================================
-const List _niveau4Questions = [
+
+const List<Question> _niveau4Questions = [
 // --- ACCÈS À L'EXAMEN & PRÉREQUIS ---
 Question(
   id: 'n4_01',
