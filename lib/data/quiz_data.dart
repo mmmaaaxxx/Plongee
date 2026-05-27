@@ -1,5 +1,30 @@
 import '../models/question.dart';
 
+
+class QuizModule {
+  final String level;
+  final String title;
+  final String subtitle;
+  final String icon;
+  final String color;
+  final List<Question> questions;
+
+  const QuizModule({
+    required this.level,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.questions,
+  });
+}
+
+
+
+
+
+
+
 // ============================================================
 // NIVEAU 1 — PE20 (100 questions)
 // ============================================================
@@ -3324,3 +3349,41 @@ Question(
   category: 'Matériel de plongée',
 ),
 ];
+
+final List<QuizModule> quizModules = [
+  QuizModule(
+    level: 'N1',
+    title: 'Niveau 1',
+    subtitle: 'PE20',
+    icon: '🤿',
+    color: '0xFF0D47A1',
+    questions: _niveau1Questions,
+  ),
+  QuizModule(
+    level: 'N2',
+    title: 'Niveau 2',
+    subtitle: 'PA20 / PE40',
+    icon: '🪸',
+    color: '0xFF1565C0',
+    questions: _niveau2Questions,
+  ),
+  QuizModule(
+    level: 'N3',
+    title: 'Niveau 3',
+    subtitle: 'Autonomie',
+    icon: '🐠',
+    color: '0xFF0288D1',
+    questions: _niveau3Questions,
+  ),
+  QuizModule(
+    level: 'N4',
+    title: 'Niveau 4',
+    subtitle: 'Guide de palanquée',
+    icon: '🏅',
+    color: '0xFF0097A7',
+    questions: _niveau4Questions,
+  ),
+];
+
+
+
