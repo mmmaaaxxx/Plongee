@@ -1,0 +1,38 @@
+name: Dart Format Auto Commit
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Format Dart files
+        run: dart format --output=none .
+
+      - name: Auto-commit formatted files
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: format Dart code"
+          file_pattern: |
+            lib/**/*.dart
+            test/**/*.dart
